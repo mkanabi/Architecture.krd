@@ -1,103 +1,120 @@
 import React from 'react';
 import { GetServerSideProps } from 'next';
-import { useRouter } from 'next/router';
-import MainLayout from '@/components/layout/MainLayout';
-import BuildingDetail from '@/components/buildings/BuildingDetail';
 import { Building, Language } from '@/types';
+import MainLayout from '@/components/layout/MainLayout';
+import { ArrowLeft } from 'lucide-react';
+import { useRouter } from 'next/router';
 
-interface BuildingPageProps {
+interface BuildingDetailPageProps {
   building: Building;
 }
 
-const BuildingPage: React.FC<BuildingPageProps> = ({ building }) => {
-  const [language, setLanguage] = React.useState<Language>('ku');
+const BuildingDetailPage: React.FC<BuildingDetailPageProps> = ({ building }) => {
   const router = useRouter();
+  const [language, setLanguage] = React.useState<Language>('ku');
 
-  if (router.isFallback) {
-    return <div>Loading...</div>;
-  }
+  const translations = {
+    en: {
+      period: "Period",
+      location: "Location",
+      overview: "Overview",
+      backToHome: "Back to Home"
+    },
+    ku: {
+      period: "سەردەم",
+      location: "شوێن",
+      overview: "پوختە",
+      backToHome: "گەڕانەوە بۆ سەرەتا"
+    }
+  };
 
   return (
-    <MainLayout>
-      <BuildingDetail building={building} language={language} onLanguageChange={setLanguage} />
+    <MainLayout onLanguageChange={setLanguage}>
+      <div className="min-h-screen bg-white">
+        {/* Hero Section */}
+        <div className="relative h-96 border-b-4 border-black">
+          {building.images && building.images[0] ? (
+            <img 
+              src={building.images[0]}
+              alt={building.translations[language].title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+              <span className="text-gray-500 font-mono">No image available</span>
+            </div>
+          )}
+          <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 p-8">
+            <h1 className="text-white font-mono text-4xl mb-2">
+              {building.translations[language].title}
+            </h1>
+            <p className="text-white font-mono">
+              {building.period}
+            </p>
+          </div>
+          <button 
+            onClick={() => router.back()} 
+            className="absolute top-8 left-8 bg-black text-white p-4 hover:bg-white hover:text-black transition-colors"
+          >
+            <ArrowLeft size={24} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="max-w-screen-xl mx-auto p-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Main Content */}
+            <div className="lg:col-span-2 space-y-8">
+              <div>
+                <h2 className="text-2xl font-mono mb-4">{translations[language].overview}</h2>
+                <p className="font-mono leading-relaxed">
+                  {building.translations[language].overview}
+                </p>
+              </div>
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-6">
+              <div className="border-4 border-black p-6">
+                <h3 className="font-mono mb-4">{translations[language].period}</h3>
+                <p className="font-mono">{building.period}</p>
+              </div>
+
+              <div className="border-4 border-black p-6">
+                <h3 className="font-mono mb-4">{translations[language].location}</h3>
+                <p className="font-mono">{building.translations[language].location}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </MainLayout>
   );
 };
 
 export const getServerSideProps: GetServerSideProps = async ({ params }) => {
   try {
-    // This will be replaced with actual API call
-    const building: Building = {
-      id: params?.id as string,
-      translations: {
-        en: {
-          title: "Erbil Citadel",
-          alternateNames: ["Qelat", "Hawler Castle"],
-          location: "Erbil, Kurdistan Region, Iraq",
-          overview: "The Citadel of Erbil is a tell or occupied mound in the historical city of Erbil, Kurdistan Region...",
-          architecturalDetails: [
-            "Built on an artificial mound rising 32 meters",
-            "Oval shape, approximately 430 meters long and 340 meters wide",
-            "Three main districts: Serai, Takya and Topkhana"
-          ],
-          historicalPeriods: [
-            {
-              era: "Ancient Mesopotamian",
-              details: "Early settlement and temple complex"
-            },
-            {
-              era: "Islamic Golden Age",
-              details: "Major fortification and urban development"
-            }
-          ]
-        },
-        ku: {
-          title: "قەڵای هەولێر",
-          alternateNames: ["قەڵات", "قەڵای هەولێر"],
-          location: "هەولێر، هەرێمی کوردستان، عێراق",
-          overview: "قەڵای هەولێر تەلێکە یان گردێکی نیشتەجێبوو لە شاری مێژوویی هەولێر...",
-          architecturalDetails: [
-            "لەسەر گردێکی دەستکرد دروستکراوە بە بەرزی ٣٢ مەتر",
-            "شێوەی هێلکەیی، نزیکەی ٤٣٠ مەتر درێژ و ٣٤٠ مەتر پان",
-            "سێ گەڕەکی سەرەکی: سەرای، تەکیە و تۆپخانە"
-          ],
-          historicalPeriods: [
-            {
-              era: "سەردەمی مێزۆپۆتامیای کۆن",
-              details: "نیشتەجێبوونی سەرەتایی و کۆمپلێکسی پەرستگا"
-            },
-            {
-              era: "سەردەمی زێڕینی ئیسلامی",
-              details: "قەڵابەندی و گەشەپێدانی شارستانی"
-            }
-          ]
-        }
-      },
-      coordinates: {
-        lat: 36.19,
-        lng: 44.01
-      },
-      period: "6000 BCE - Present",
-      status: "UNESCO World Heritage Site",
-      images: [
-        "/api/placeholder/1200/400",
-        "/api/placeholder/400/300",
-        "/api/placeholder/400/300"
-      ],
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/buildings/${params?.id}`
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch building');
+    }
+
+    const building = await response.json();
 
     return {
       props: {
-        building
-      }
+        building,
+      },
     };
   } catch (error) {
+    console.error('Error fetching building:', error);
     return {
-      notFound: true
+      notFound: true,
     };
   }
 };
 
-export default BuildingPage;
+export default BuildingDetailPage;

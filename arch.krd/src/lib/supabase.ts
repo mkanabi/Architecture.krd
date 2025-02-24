@@ -13,14 +13,22 @@ export async function uploadImage(file: File): Promise<string> {
   try {
     console.log('Starting upload for file:', file.name);
 
+    // Validate file
+    if (!file.type.startsWith('image/')) {
+      throw new Error('File must be an image');
+    }
+
+    // Generate a unique filename
     const fileExt = file.name.split('.').pop()?.toLowerCase();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-    console.log('Generated filename:', fileName);
+    console.log('Uploading with filename:', fileName);
 
+    // Upload the file
     const { data, error } = await supabase.storage
       .from('building-images')
       .upload(fileName, file, {
+        cacheControl: '3600',
         upsert: false,
         contentType: file.type
       });
@@ -32,15 +40,16 @@ export async function uploadImage(file: File): Promise<string> {
 
     console.log('Upload successful:', data);
 
-    const { data: urlData } = supabase.storage
+    // Get the public URL
+    const { data: { publicUrl } } = supabase.storage
       .from('building-images')
       .getPublicUrl(fileName);
 
-    console.log('Generated public URL:', urlData.publicUrl);
+    console.log('Generated public URL:', publicUrl);
+    return publicUrl;
 
-    return urlData.publicUrl;
   } catch (error) {
-    console.error('Detailed upload error:', error);
+    console.error('Upload error:', error);
     throw error;
   }
 }

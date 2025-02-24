@@ -1,7 +1,7 @@
 import React from 'react';
 import { Upload, X } from 'lucide-react';
-import { Language } from '@/types';
 import { uploadImage } from '@/lib/supabase';
+import { Language } from '@/types';
 
 interface ImageUploadProps {
   onUpload: (urls: string[]) => void;
@@ -35,68 +35,25 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     }
   };
 
-  const validateFile = (file: File): boolean => {
-    // Check file size (5MB limit)
-    if (file.size > 5 * 1024 * 1024) {
-      setError(translations[language].maxSize);
-      return false;
-    }
-    
-    // Check file type
-    if (!file.type.startsWith('image/')) {
-      setError('Please upload only image files');
-      return false;
-    }
-
-    setError(null);
-    return true;
-  };
-
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length) return;
 
     setUploading(true);
     setError(null);
-    const files = Array.from(e.target.files);
-    const urls: string[] = [];
 
     try {
-      for (const file of files) {
-        if (validateFile(file)) {
-          const url = await uploadImage(file);
-          urls.push(url);
-        }
-      }
+      const files = Array.from(e.target.files);
+      const uploadPromises = files.map(file => uploadImage(file));
+      const urls = await Promise.all(uploadPromises);
 
-      if (urls.length > 0) {
-        const newPreview = [...preview, ...urls];
-        setPreview(newPreview);
-        onUpload(newPreview);
-      }
+      setPreview(prev => [...prev, ...urls]);
+      onUpload([...preview, ...urls]);
     } catch (error) {
       console.error('Upload error:', error);
       setError(translations[language].error);
     } finally {
       setUploading(false);
     }
-  };
-
-  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (e.dataTransfer.files?.length) {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.multiple = true;
-      input.files = e.dataTransfer.files;
-      handleFileChange({ target: input } as any);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
   };
 
   const removeImage = (index: number) => {
@@ -108,11 +65,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
 
   return (
     <div className="space-y-4">
-      <div 
-        className="border-4 border-black p-8 text-center"
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-      >
+      <div className="border-4 border-black p-8 text-center">
         <input
           type="file"
           multiple

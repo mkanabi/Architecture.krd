@@ -3,7 +3,7 @@ import MainLayout from '@/components/layout/MainLayout';
 import BuildingsMap from '@/components/map/BuildingsMap';
 import SearchBar from '@/components/search/SearchBar';
 import { Building, Language } from '@/types';
-import { buildingsApi } from '@/lib/api';
+import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 
 // Dynamically import the map component to avoid SSR issues
@@ -15,14 +15,17 @@ const MapPage = () => {
   const [buildings, setBuildings] = React.useState<Building[]>([]);
   const [language, setLanguage] = React.useState<Language>('ku');
   const [loading, setLoading] = React.useState(true);
+  const router = useRouter();
 
   React.useEffect(() => {
     const fetchBuildings = async () => {
       try {
-        const data = await buildingsApi.getAll();
+        const response = await fetch('/api/buildings');
+        if (!response.ok) throw new Error('Failed to fetch buildings');
+        const data = await response.json();
         setBuildings(data);
       } catch (error) {
-        console.error('Failed to fetch buildings:', error);
+        console.error('Error:', error);
       } finally {
         setLoading(false);
       }
@@ -34,40 +37,44 @@ const MapPage = () => {
   const handleSearch = async (query: string) => {
     try {
       setLoading(true);
-      // This would be replaced with an actual API call with search parameters
-      const data = await buildingsApi.getAll();
+      const response = await fetch(`/api/buildings?search=${encodeURIComponent(query)}`);
+      if (!response.ok) throw new Error('Search failed');
+      const data = await response.json();
       setBuildings(data);
     } catch (error) {
-      console.error('Search failed:', error);
+      console.error('Search error:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
+  const handleBuildingSelect = (building: Building) => {
+    router.push(`/building/${building.id}`);
+  };
 
   return (
-    <MainLayout>
-      <div className="p-8 space-y-8">
-        <div className="max-w-screen-xl mx-auto">
-          <h1 className="text-3xl font-mono mb-8">
+    <MainLayout onLanguageChange={setLanguage}>
+      <div className="p-8">
+        <div className="max-w-screen-xl mx-auto space-y-8">
+          <h1 className="text-3xl font-mono">
             {language === 'en' ? 'Architectural Map' : 'نەخشەی تەلارسازی'}
           </h1>
           
           <SearchBar onSearch={handleSearch} language={language} />
           
-          <div className="mt-8">
+          {loading ? (
+            <div className="h-[600px] border-4 border-black flex items-center justify-center">
+              <p className="text-xl font-mono">
+                {language === 'en' ? 'Loading...' : 'چاوەڕێ بکە...'}
+              </p>
+            </div>
+          ) : (
             <DynamicMap
               buildings={buildings}
               language={language}
-              onBuildingSelect={(building) => {
-                // Handle building selection
-                console.log('Selected building:', building);
-              }}
+              onBuildingSelect={handleBuildingSelect}
             />
-          </div>
+          )}
         </div>
       </div>
     </MainLayout>

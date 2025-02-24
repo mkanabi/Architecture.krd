@@ -1,32 +1,50 @@
 import React from 'react';
-import { Globe, Menu, X } from 'lucide-react';
+import { Globe, Menu, X, Map, Clock, GitCompare, LayoutDashboard } from 'lucide-react';
 import { Language } from '@/types';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 
 interface MainLayoutProps {
   children: React.ReactNode;
+  onLanguageChange?: (language: Language) => void;
 }
 
-const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+const MainLayout: React.FC<MainLayoutProps> = ({ children, onLanguageChange }) => {
   const [language, setLanguage] = React.useState<Language>('ku');
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
   const router = useRouter();
 
+  const handleLanguageChange = (newLanguage: Language) => {
+    setLanguage(newLanguage);
+    if (onLanguageChange) {
+      onLanguageChange(newLanguage);
+    }
+  };
+
   const translations = {
     en: {
-      title: "KURDISH ARCHITECTURAL HERITAGE",
+      title: "KURDISTAN ARCHITECTURAL HERITAGE",
       search: "SEARCH...",
       eras: "HISTORICAL ERAS",
       regions: "REGIONS",
+      features: "FEATURES",
+      map: "MAP VIEW",
+      timeline: "TIMELINE",
+      compare: "COMPARE BUILDINGS",
+      admin: "ADMIN DASHBOARD",
       about: "ABOUT",
       contact: "CONTACT"
     },
     ku: {
-      title: "میراتی تەلارسازیی کوردی",
+      title: "میراتی تەلارسازیی کورستان",
       search: "گەڕان...",
       eras: "سەردەمە مێژووییەکان",
       regions: "ناوچەکان",
+      features: "تایبەتمەندییەکان",
+      map: "نەخشە",
+      timeline: "هێڵی کات",
+      compare: "بەراوردی بیناکان",
+      admin: "داشبۆردی بەڕێوەبردن",
       about: "دەربارە",
       contact: "پەیوەندی"
     }
@@ -85,7 +103,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             </Link>
           </div>
           <button 
-            onClick={() => setLanguage(language === 'en' ? 'ku' : 'en')}
+            onClick={() => handleLanguageChange(language === 'en' ? 'ku' : 'en')}
             className="hover:bg-white hover:text-black p-2 transition-colors"
           >
             <Globe size={32} />
@@ -98,6 +116,50 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         {isSidebarOpen && (
           <aside className="w-72 bg-black text-white p-8 min-h-screen">
             <nav className="font-mono">
+              {/* Features Section */}
+              <h2 className="text-2xl mb-4 border-b-2 border-white pb-2">
+                {translations[language].features}
+              </h2>
+              <ul className="space-y-4 text-lg mb-8">
+                <li>
+                  <Link 
+                    href="/map"
+                    className="flex items-center gap-2 hover:bg-white hover:text-black p-2 transition-colors"
+                  >
+                    <Map size={20} />
+                    {translations[language].map}
+                  </Link>
+                </li>
+                <li>
+                  <Link 
+                    href="/timeline"
+                    className="flex items-center gap-2 hover:bg-white hover:text-black p-2 transition-colors"
+                  >
+                    <Clock size={20} />
+                    {translations[language].timeline}
+                  </Link>
+                </li>
+                <li>
+                  <Link 
+                    href="/compare"
+                    className="flex items-center gap-2 hover:bg-white hover:text-black p-2 transition-colors"
+                  >
+                    <GitCompare size={20} />
+                    {translations[language].compare}
+                  </Link>
+                </li>
+                <li>
+                  <Link 
+                    href="/admin/dashboard"
+                    className="flex items-center gap-2 hover:bg-white hover:text-black p-2 transition-colors"
+                  >
+                    <LayoutDashboard size={20} />
+                    {translations[language].admin}
+                  </Link>
+                </li>
+              </ul>
+
+              {/* Eras Section */}
               <h2 className="text-2xl mb-4 border-b-2 border-white pb-2">
                 {translations[language].eras}
               </h2>
@@ -113,6 +175,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 ))}
               </ul>
               
+              {/* Regions Section */}
               <h2 className="text-2xl mt-12 mb-4 border-b-2 border-white pb-2">
                 {translations[language].regions}
               </h2>
@@ -128,6 +191,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 ))}
               </ul>
 
+              {/* Footer Links */}
               <div className="mt-12 space-y-4">
                 <Link 
                   href="/about"
