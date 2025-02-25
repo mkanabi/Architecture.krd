@@ -7,52 +7,127 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Era {
+  id            String     @id @default(cuid())
+  nameEn        String
+  nameKu        String
+  descriptionEn String     @db.Text
+  descriptionKu String     @db.Text
+  startYear     Int?
+  endYear       Int?
+  buildings     Building[] 
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}
+
+model Region {
+  id            String     @id @default(cuid())
+  nameEn        String
+  nameKu        String
+  descriptionEn String     @db.Text
+  descriptionKu String     @db.Text
+  latitude      Float
+  longitude     Float
+  buildings     Building[] 
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}
+
+model BuildingType {
+  id           String     @id @default(cuid())
+  nameEn       String
+  nameKu       String
+  descriptionEn String?    @db.Text
+  descriptionKu String?    @db.Text
+  buildings    Building[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Material {
+  id            String              @id @default(cuid())
+  nameEn        String
+  nameKu        String
+  descriptionEn String?             @db.Text
+  descriptionKu String?             @db.Text
+  buildings     BuildingsOnMaterials[]
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+}
+
+model BuildingsOnMaterials {
+  building    Building @relation(fields: [buildingId], references: [id])
+  buildingId  String
+  material    Material @relation(fields: [materialId], references: [id])
+  materialId  String
+  
+  @@id([buildingId, materialId])
+}
+
 model Building {
-  id        String   @id @default(cuid())
-  
-  // Translations
-  titleEn   String
-  titleKu   String
-  
-  alternateNamesEn String[]
-  alternateNamesKu String[]
-  
-  locationEn String
-  locationKu String
-  
-  overviewEn String  @db.Text
-  overviewKu String  @db.Text
-  
+  id                    String   @id @default(cuid())
+  titleEn               String
+  titleKu               String
+  alternateNamesEn      String[]
+  alternateNamesKu      String[]
+  locationEn            String
+  locationKu            String
+  overviewEn            String   @db.Text
+  overviewKu            String   @db.Text
   architecturalDetailsEn String[]
   architecturalDetailsKu String[]
-  
-  // Common fields
-  latitude  Float
-  longitude Float
-  period    String
-  status    String
-  images    String[]
-  
-  // Historical periods are stored as JSON
-  historicalPeriodsEn Json
-  historicalPeriodsKu Json
-  
-  // Relations
-  comments Comment[]
+  latitude              Float
+  longitude             Float
+  era                   Era      @relation(fields: [eraId], references: [id])
+  eraId                 String
+  region                Region   @relation(fields: [regionId], references: [id])
+  regionId              String
+  status                String
+  constructionYear      Int?
+  renovationYears       Int[]
+  architectEn           String?
+  architectKu           String?
+  buildingType          BuildingType @relation(fields: [buildingTypeId], references: [id])
+  buildingTypeId        String
+  materials             BuildingsOnMaterials[]
+  images                Image[]
+  sources               Source[]
+  comments              Comment[]
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Image {
+  id          String   @id @default(cuid())
+  url         String
+  captionEn   String?
+  captionKu   String?
+  isPrimary   Boolean  @default(false)
+  building    Building @relation(fields: [buildingId], references: [id])
+  buildingId  String
+  createdAt   DateTime @default(now())
+}
+
+model Source {
+  id          String   @id @default(cuid())
+  titleEn     String
+  titleKu     String?
+  url         String?
+  description String?  @db.Text
+  building    Building @relation(fields: [buildingId], references: [id])
+  buildingId  String
+  createdAt   DateTime @default(now())
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
+  id        String    @id @default(cuid())
+  email     String    @unique
   name      String?
   password  String
-  role      Role     @default(USER)
+  role      Role      @default(USER)
   comments  Comment[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model Comment {
@@ -72,4 +147,5 @@ model Comment {
 enum Role {
   USER
   ADMIN
+  EXPERT
 }

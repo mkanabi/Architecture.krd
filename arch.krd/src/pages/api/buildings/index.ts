@@ -4,116 +4,68 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   try {
-    switch (req.method) {
-      case 'GET':
-        const buildings = await prisma.building.findMany({
-          orderBy: {
-            createdAt: 'desc'
-          }
-        });
+    const { 
+      search, 
+      page = '1', 
+      limit = '6' 
+    } = req.query;
 
-        // Transform buildings to match frontend structure
-        const transformedBuildings = buildings.map(building => ({
-          id: building.id,
-          translations: {
-            en: {
-              title: building.titleEn,
-              alternateNames: building.alternateNamesEn,
-              location: building.locationEn,
-              overview: building.overviewEn,
-              architecturalDetails: building.architecturalDetailsEn,
-              historicalPeriods: JSON.parse(building.historicalPeriodsEn.toString())
-            },
-            ku: {
-              title: building.titleKu,
-              alternateNames: building.alternateNamesKu,
-              location: building.locationKu,
-              overview: building.overviewKu,
-              architecturalDetails: building.architecturalDetailsKu,
-              historicalPeriods: JSON.parse(building.historicalPeriodsKu.toString())
-            }
-          },
-          coordinates: {
-            lat: building.latitude,
-            lng: building.longitude
-          },
-          period: building.period,
-          status: building.status,
-          images: building.images,
-          createdAt: building.createdAt,
-          updatedAt: building.updatedAt
-        }));
+    const pageNumber = parseInt(page as string, 10);
+    const pageSize = parseInt(limit as string, 10);
+    const skip = (pageNumber - 1) * pageSize;
 
-        return res.status(200).json(transformedBuildings);
-
-      case 'POST':
-        // Your existing POST logic here
-        const buildingData = {
-          titleEn: req.body.translations.en.title,
-          titleKu: req.body.translations.ku.title,
-          locationEn: req.body.translations.en.location,
-          locationKu: req.body.translations.ku.location,
-          overviewEn: req.body.translations.en.overview,
-          overviewKu: req.body.translations.ku.overview,
-          architecturalDetailsEn: req.body.translations.en.architecturalDetails || [],
-          architecturalDetailsKu: req.body.translations.ku.architecturalDetails || [],
-          alternateNamesEn: req.body.translations.en.alternateNames || [],
-          alternateNamesKu: req.body.translations.ku.alternateNames || [],
-          historicalPeriodsEn: JSON.stringify(req.body.translations.en.historicalPeriods || []),
-          historicalPeriodsKu: JSON.stringify(req.body.translations.ku.historicalPeriods || []),
-          latitude: parseFloat(req.body.coordinates.lat),
-          longitude: parseFloat(req.body.coordinates.lng),
-          period: req.body.period,
-          status: req.body.status,
-          images: req.body.images || []
-        };
-
-        const createdBuilding = await prisma.building.create({
-          data: buildingData
-        });
-
-        return res.status(201).json({
-          id: createdBuilding.id,
-          translations: {
-            en: {
-              title: createdBuilding.titleEn,
-              alternateNames: createdBuilding.alternateNamesEn,
-              location: createdBuilding.locationEn,
-              overview: createdBuilding.overviewEn,
-              architecturalDetails: createdBuilding.architecturalDetailsEn,
-              historicalPeriods: JSON.parse(createdBuilding.historicalPeriodsEn.toString())
-            },
-            ku: {
-              title: createdBuilding.titleKu,
-              alternateNames: createdBuilding.alternateNamesKu,
-              location: createdBuilding.locationKu,
-              overview: createdBuilding.overviewKu,
-              architecturalDetails: createdBuilding.architecturalDetailsKu,
-              historicalPeriods: JSON.parse(createdBuilding.historicalPeriodsKu.toString())
-            }
-          },
-          coordinates: {
-            lat: createdBuilding.latitude,
-            lng: createdBuilding.longitude
-          },
-          period: createdBuilding.period,
-          status: createdBuilding.status,
-          images: createdBuilding.images,
-          createdAt: createdBuilding.createdAt,
-          updatedAt: createdBuilding.updatedAt
-        });
-
-      default:
-        res.setHeader('Allow', ['GET', 'POST']);
-        return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
+    // Build where clause for search
+    const where: any = {};
+    if (search) {
+      where.OR = [
+        { titleEn: { contains: search as string, mode: 'insensitive' } },
+        { titleKu: { contains: search as string, mode: 'insensitive' } },
+        { locationEn: { contains: search as string, mode: 'insensitive' } },
+        { locationKu: { contains: search as string, mode: 'insensitive' } }
+      ];
     }
-  } catch (error) {
-    console.error('API Error:', error);
-    return res.status(500).json({ 
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
+
+    // Fetch buildings
+    const buildings = await prisma.building.findMany({
+      where,
+      include: {
+        images: true
+      },
+      take: pageSize,
+      skip,
+      orderBy: {
+        createdAt: 'desc'
+      }
     });
+
+    // Transform buildings to match the type
+    const transformedBuildings = buildings.map(building => ({
+      ...building,
+      translations: {
+        en: {
+          title: building.titleEn,
+          location: building.locationEn
+        },
+        ku: {
+          title: building.titleKu,
+          location: building.locationKu
+        }
+      },
+      images: building.images.map(img => img.url),
+      period: building.era?.nameEn || ''
+    }));
+
+    res.status(200).json({
+      buildings: transformedBuildings
+    });
+  } catch (error) {
+    console.error('Error fetching buildings:', error);
+    res.status(500).json({ error: 'Failed to fetch buildings' });
   } finally {
     await prisma.$disconnect();
   }

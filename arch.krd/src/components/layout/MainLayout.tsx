@@ -1,21 +1,21 @@
 import React from 'react';
 import { Globe, Menu, X, Map, Clock, GitCompare, LayoutDashboard } from 'lucide-react';
-import { Language } from '@/types';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import { useLanguage } from '@/contexts/LanguageContext';  // Import the language context
 
 interface MainLayoutProps {
   children: React.ReactNode;
-  onLanguageChange?: (language: Language) => void;
+  onLanguageChange?: (language: string) => void;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children, onLanguageChange }) => {
-  const [language, setLanguage] = React.useState<Language>('ku');
+  const { language, setLanguage } = useLanguage();  // Use language context for language management
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
   const router = useRouter();
 
-  const handleLanguageChange = (newLanguage: Language) => {
-    setLanguage(newLanguage);
+  const handleLanguageChange = (newLanguage: string) => {
+    setLanguage(newLanguage);  // Set language in context
     if (onLanguageChange) {
       onLanguageChange(newLanguage);
     }
@@ -90,7 +90,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, onLanguageChange }) =
       <header className="bg-black text-white p-4 border-b-4 border-white">
         <div className="max-w-screen-xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-8">
-            <button 
+            <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="hover:bg-white hover:text-black p-2 transition-colors"
             >
@@ -102,7 +102,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, onLanguageChange }) =
               </h1>
             </Link>
           </div>
-          <button 
+          <button
             onClick={() => handleLanguageChange(language === 'en' ? 'ku' : 'en')}
             className="hover:bg-white hover:text-black p-2 transition-colors"
           >
@@ -122,7 +122,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, onLanguageChange }) =
               </h2>
               <ul className="space-y-4 text-lg mb-8">
                 <li>
-                  <Link 
+                  <Link
                     href="/map"
                     className="flex items-center gap-2 hover:bg-white hover:text-black p-2 transition-colors"
                   >
@@ -131,7 +131,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, onLanguageChange }) =
                   </Link>
                 </li>
                 <li>
-                  <Link 
+                  <Link
                     href="/timeline"
                     className="flex items-center gap-2 hover:bg-white hover:text-black p-2 transition-colors"
                   >
@@ -140,7 +140,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, onLanguageChange }) =
                   </Link>
                 </li>
                 <li>
-                  <Link 
+                  <Link
                     href="/compare"
                     className="flex items-center gap-2 hover:bg-white hover:text-black p-2 transition-colors"
                   >
@@ -149,7 +149,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, onLanguageChange }) =
                   </Link>
                 </li>
                 <li>
-                  <Link 
+                  <Link
                     href="/admin/dashboard"
                     className="flex items-center gap-2 hover:bg-white hover:text-black p-2 transition-colors"
                   >
@@ -163,57 +163,27 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, onLanguageChange }) =
               <h2 className="text-2xl mb-4 border-b-2 border-white pb-2">
                 {translations[language].eras}
               </h2>
-              <ul className="space-y-4 text-lg">
+              <ul className="space-y-4 text-lg mb-8">
                 {architecturalEras[language].map((era, index) => (
-                  <li 
-                    key={index} 
-                    className="hover:bg-white hover:text-black p-2 cursor-pointer transition-colors"
-                    onClick={() => router.push(`/era/${index}`)}
-                  >
-                    {era}
-                  </li>
+                  <li key={index}>{era}</li>
                 ))}
               </ul>
-              
+
               {/* Regions Section */}
-              <h2 className="text-2xl mt-12 mb-4 border-b-2 border-white pb-2">
+              <h2 className="text-2xl mb-4 border-b-2 border-white pb-2">
                 {translations[language].regions}
               </h2>
               <ul className="space-y-4 text-lg">
                 {regions[language].map((region, index) => (
-                  <li 
-                    key={index} 
-                    className="hover:bg-white hover:text-black p-2 cursor-pointer transition-colors"
-                    onClick={() => router.push(`/region/${index}`)}
-                  >
-                    {region}
-                  </li>
+                  <li key={index}>{region}</li>
                 ))}
               </ul>
-
-              {/* Footer Links */}
-              <div className="mt-12 space-y-4">
-                <Link 
-                  href="/about"
-                  className="block hover:bg-white hover:text-black p-2 transition-colors"
-                >
-                  {translations[language].about}
-                </Link>
-                <Link 
-                  href="/contact"
-                  className="block hover:bg-white hover:text-black p-2 transition-colors"
-                >
-                  {translations[language].contact}
-                </Link>
-              </div>
             </nav>
           </aside>
         )}
 
-        {/* Main Content */}
-        <main className="flex-1">
-          {children}
-        </main>
+        {/* Main content */}
+        <main className="flex-1 p-8">{children}</main>
       </div>
     </div>
   );
