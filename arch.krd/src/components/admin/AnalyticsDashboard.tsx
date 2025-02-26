@@ -1,40 +1,48 @@
 import React from 'react';
-import { Building, Language } from '@/types';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Building as BuildingIcon, MapPin, Clock, Users } from 'lucide-react';
+import { Building as BuildingIcon, MapPin } from 'lucide-react';
+
+type Language = 'en' | 'ku';
 
 interface AnalyticsDashboardProps {
-  buildings: Building[];
+  buildings: any[];
   language: Language;
 }
 
 const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ buildings, language }) => {
   const translations = {
     en: {
-      buildingsOverTime: "Buildings Over Time",
       buildingsByRegion: "Buildings by Region",
       totalBuildings: "Total Buildings",
       regions: "Total Regions",
-      overview: "Overview"
+      overview: "Overview",
+      noData: "No data available"
     },
     ku: {
-      buildingsOverTime: "بیناکان بەپێی کات",
       buildingsByRegion: "بیناکان بەپێی ناوچە",
       totalBuildings: "کۆی بیناکان",
       regions: "کۆی ناوچەکان",
-      overview: "گشتی"
+      overview: "گشتی",
+      noData: "زانیاری بەردەست نییە"
     }
   };
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
+  // Ensure buildings is an array
+  const safeBuildings = Array.isArray(buildings) ? buildings : [];
+
   // Calculate statistics
-  const totalBuildings = buildings.length;
-  const uniqueRegions = new Set(buildings.map(b => b.translations.en.location)).size;
+  const totalBuildings = safeBuildings.length;
+  
+  // Calculate unique regions
+  const uniqueRegions = new Set(
+    safeBuildings.map(b => b.translations?.[language]?.location || 'Unknown')
+  ).size;
 
   // Prepare data for charts
-  const buildingsByRegion = buildings.reduce((acc, building) => {
-    const region = building.translations[language].location;
+  const buildingsByRegion = safeBuildings.reduce((acc, building) => {
+    const region = building.translations?.[language]?.location || 'Unknown';
     acc[region] = (acc[region] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -70,34 +78,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ buildings, lang
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Buildings by Region */}
-        <div className="border-4 border-black p-6">
-          <h3 className="text-xl font-mono mb-6">{translations[language].buildingsByRegion}</h3>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieChartData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  fill="#8884d8"
-                  label
-                >
-                  {pieChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
+      
     </div>
   );
 };

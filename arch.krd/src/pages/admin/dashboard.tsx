@@ -1,28 +1,60 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
 import UserManagement from '@/components/admin/UserManagement';
 import BuildingManagement from '@/components/admin/BuildingManagement';
 import { Building, Language } from '@/types';
-import { buildingsApi } from '@/lib/api';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const AdminDashboardPage = () => {
-  const [buildings, setBuildings] = React.useState<Building[]>([]);
-  const [language, setLanguage] = React.useState<Language>('ku');
-  const [activeTab, setActiveTab] = React.useState('analytics');
+  const [isClient, setIsClient] = useState(false);
+  const [buildings, setBuildings] = useState<Building[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { language, setLanguage } = useLanguage(); // Use the language context
+  const [activeTab, setActiveTab] = useState('analytics');
 
-  React.useEffect(() => {
-    const fetchBuildings = async () => {
-      try {
-        const data = await buildingsApi.getAll();
-        setBuildings(data);
-      } catch (error) {
-        console.error('Failed to fetch buildings:', error);
-      }
-    };
-
-    fetchBuildings();
+  // Ensure client-side rendering is confirmed
+  useEffect(() => {
+    setIsClient(true);
   }, []);
+
+  // AbortController to cancel unnecessary requests
+  const fetchBuildings = useCallback(async () => {
+    if (!isClient) return;
+
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    try {
+      setLoading(true);
+      const url = new URL('/api/buildings', window.location.origin);
+      url.searchParams.append('language', language);
+      
+      const response = await fetch(url.toString(), { signal });
+      if (!response.ok) throw new Error('Failed to fetch buildings');
+      
+      const data = await response.json();
+      
+      setBuildings(data.buildings);
+      setError(null);
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        console.error('Error:', error);
+        setError('Failed to load buildings. Please try again later.');
+      }
+    } finally {
+      setLoading(false);
+    }
+
+    return () => controller.abort(); // Cleanup function
+  }, [isClient, language]);
+
+  useEffect(() => {
+    if (isClient) {
+      fetchBuildings();
+    }
+  }, [fetchBuildings, isClient, language]);
 
   const translations = {
     en: {
@@ -72,14 +104,26 @@ const AdminDashboardPage = () => {
 
             {/* Tab Content */}
             <div>
-              {activeTab === 'analytics' && (
-                <AnalyticsDashboard buildings={buildings} language={language} />
-              )}
-              {activeTab === 'buildings' && (
-                <BuildingManagement buildings={buildings} language={language} />
-              )}
-              {activeTab === 'users' && (
-                <UserManagement language={language} />
+              {loading ? (
+                <div className="text-center py-8">
+                  {language === 'en' ? 'Loading...' : 'چاوەڕێ بکە...'}
+                </div>
+              ) : error ? (
+                <div className="text-center py-8 text-red-500">
+                  {error}
+                </div>
+              ) : (
+                <>
+                  {activeTab === 'analytics' && (
+                    <AnalyticsDashboard buildings={buildings} language={language} />
+                  )}
+                  {activeTab === 'buildings' && (
+                    <BuildingManagement buildings={buildings} language={language} />
+                  )}
+                  {activeTab === 'users' && (
+                    <UserManagement language={language} />
+                  )}
+                </>
               )}
             </div>
           </div>
